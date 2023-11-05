@@ -1,0 +1,41 @@
+
+			WITH batch_split AS (
+				SELECT BATCH_ID, 1 AS quantity
+				FROM [Complex_Proplem].[dbo].[F1_BATCH]
+    
+				UNION ALL 
+    
+				SELECT b.BATCH_ID, (cte.quantity + 1) AS quantity
+				FROM batch_split cte
+				JOIN [Complex_Proplem].[dbo].[F1_BATCH] b ON b.BATCH_ID = cte.BATCH_ID
+				WHERE b.QUANTITY > cte.quantity)
+			
+,
+		batch_Cte as(
+			SELECT BATCH_ID, 1 as quantity, ROW_NUMBER() over(order by Batch_id) rn
+			FROM batch_split
+)	,	
+
+		 Orders_split AS (
+				SELECT Order_Number, 1 AS quantity
+				FROM [Complex_Proplem].[dbo].[F1_Orders]
+    
+				UNION ALL 
+    
+				SELECT b.Order_Number, (cte.quantity + 1) AS quantity
+				FROM Orders_split cte
+				JOIN [Complex_Proplem].[dbo].[F1_Orders] b ON b.Order_Number = cte.Order_Number
+				WHERE b.QUANTITY > cte.quantity)
+			
+,
+		Orders_Cte as(
+			SELECT Order_Number, 1 as quantity,ROW_NUMBER() over(order by order_number) as Rn
+			FROM Orders_split
+			
+	)		
+		
+	select o.Order_Number,b.BATCH_ID,sum(b.quantity) Quantity
+	from Orders_Cte o
+	left join batch_Cte b on b.rn = o.Rn
+	group by o.Order_Number,b.BATCH_ID
+	order by o.Order_Number,b.BATCH_ID
